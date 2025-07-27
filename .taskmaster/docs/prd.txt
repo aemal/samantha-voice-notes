@@ -1,0 +1,186 @@
+# Vibe Notes – Structured PRD
+
+## Overview
+
+Vibe Notes is a **mobile-first voice note-taking PWA** designed for capturing short interactions at meetups. It allows users to attach a LinkedIn profile to a short voice or typed note and later recall that person using natural language queries. It serves users who meet many people at networking events but often forget names while remembering interactions. Vibe Notes ensures a smooth way to re-identify people via voice-first recall and quick access to their LinkedIn profiles.
+
+---
+
+## Core Features
+
+### 1. Authentication via Supabase
+
+* **What it does**: Enables user accounts with secure access.
+* **Why it's important**: Keeps each user’s notes private.
+* **How it works**: Supabase Auth (email/password) with RLS (Row-Level Security) on all data tables.
+
+### 2. Ingestion Screen
+
+* **What it does**: Lets users input LinkedIn URL + voice or typed note.
+* **Why it's important**: Captures ephemeral context while it's fresh.
+* **How it works**:
+
+  * Input LinkedIn URL
+  * Dictate via Web Speech API or type into a textarea
+  * Save to external n8n webhook API (provided by user)
+  * Save partial transcription to `localStorage` for retry
+
+### 3. Query Screen
+
+* **What it does**: Lets users ask a fuzzy query to recall a person.
+* **Why it's important**: Provides memory recall months later.
+* **How it works**:
+
+  * Dictate or type a natural language question
+  * Send query to another n8n webhook API
+  * Display AI-generated answer and LinkedIn profile deep link
+
+### 4. Progressive Web App (PWA)
+
+* **What it does**: Makes the app installable on phones.
+* **Why it's important**: Enables fast, app-like experience during meetups.
+* **How it works**:
+
+  * Uses `manifest.json`
+  * Installs to home screen
+  * Supports offline draft saving via `localStorage`
+
+### 5. Reusable Voice Input Component
+
+* **What it does**: Converts speech to text in real time.
+* **Why it's important**: Speeds up input during fast-paced events.
+* **How it works**:
+
+  * Uses browser-native Web Speech API
+  * Reusable React component
+  * Works in both ingestion and query
+
+---
+
+## User Experience
+
+### User Personas
+
+* **Aemal**, tech founder and workshop organizer who meets 30+ new people monthly.
+* **Event Attendee**, who wants to quickly capture info post-conversation and follow up later.
+
+### Key User Flows
+
+* **Note Ingestion**: User pastes LinkedIn URL → records or types a short note → saves.
+* **Note Query**: User remembers a moment but forgets a name → speaks or types a query → sees AI response + LinkedIn link.
+
+### UI/UX Considerations
+
+* **Mobile-first layout** with large tap targets
+* Real-time speech-to-text transcription while recording
+* Error handling + retry support with `localStorage` backup
+* Minimalist design for fast input and low distraction
+
+---
+
+## Technical Architecture
+
+### System Components
+
+* **Frontend**: Next.js 15 (App Router, TypeScript)
+* **Backend**: Supabase (PostgreSQL + Auth + RLS)
+* **External APIs**: n8n webhook URLs (one for ingest, one for query)
+
+### Data Models
+
+* `profiles`: user metadata (linked to Supabase auth)
+* `note_ingestions`: user\_id, linkedin\_url, note\_text, status, timestamps
+* `query_requests`: user\_id, query\_text, response\_json (optional for logging)
+
+### APIs and Integrations
+
+* `/api/ingest`: POST to n8n webhook
+* `/api/query`: POST to n8n webhook
+* Web Speech API for voice input
+
+### Infrastructure Requirements
+
+* Supabase project with RLS enabled
+* HTTPS for secure speech input and PWA
+* Environment variables for webhook URLs
+
+---
+
+## Development Roadmap
+
+### MVP Requirements
+
+* Supabase auth
+* Ingestion screen with LinkedIn + Notes field + voice input
+* Query screen with search + voice input
+* n8n webhook integration for both
+* PWA setup + installability
+
+### Future Enhancements
+
+* Background sync for offline submissions
+* Optional query history or tagging
+* ASR language toggle
+* Better LinkedIn URL parsing/validation
+
+---
+
+## Logical Dependency Chain
+
+1. **Supabase Auth + RLS setup**
+2. **Ingestion screen**
+
+   * LinkedIn input
+   * Textarea
+   * Microphone button
+   * Save/Retry
+3. **Webhook POST for ingest**
+4. **PWA install + offline localStorage + retry system**
+5. **Query screen**
+
+   * Textarea
+   * Microphone reuse
+   * Search button
+6. **Webhook POST for query + display results**
+7. **LinkedIn deep-linking**
+8. **Accessibility and error handling polish**
+
+---
+
+## Risks and Mitigations
+
+### Technical Challenges
+
+* **Speech API limitations**: fallback to typing is required.
+* **PWA installability**: use Lighthouse and proper manifest.
+* **Auth sync with Supabase RLS**: validate via backend checks.
+
+### MVP Clarity
+
+* Clearly define external webhook contract and simulate them for testing.
+
+### Resource Constraints
+
+* Use off-the-shelf tools like Supabase and Web APIs to reduce build time.
+
+---
+
+## Appendix
+
+### Technical Specs
+
+* Voice transcription: Web Speech API (no external ASR)
+* Local save: `localStorage` under user ID + timestamp key
+* LinkedIn links: validated, normalized, and opened in app if installed
+* Envs:
+
+  * `INGEST_WEBHOOK_URL`
+  * `QUERY_WEBHOOK_URL`
+  * `NEXT_PUBLIC_SUPABASE_URL`
+  * `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+### Research Notes
+
+* Tested Web Speech API across Safari and Chrome mobile
+* Supabase RLS proven in prior projects
+* n8n webhook tested with JSON payloads
