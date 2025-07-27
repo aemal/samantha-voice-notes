@@ -1,0 +1,115 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Setup Supabase Authentication and RLS",
+        "description": "Implement user authentication using Supabase Auth with email/password and configure Row-Level Security (RLS) on all data tables.",
+        "details": "1. Create a Supabase project\n2. Configure authentication settings for email/password\n3. Create database tables: `profiles`, `note_ingestions`, and `query_requests`\n4. Set up RLS policies for each table to ensure users can only access their own data\n5. Create helper functions for auth operations (login, signup, logout)\n6. Implement auth context provider in React\n\nSchema for tables:\n- `profiles`: id (references auth.users), created_at, updated_at, additional user metadata\n- `note_ingestions`: id, user_id (references profiles), linkedin_url, note_text, status, created_at, updated_at\n- `query_requests`: id, user_id (references profiles), query_text, response_json, created_at\n\nRLS policies should restrict access based on user_id matching the authenticated user's ID.",
+        "testStrategy": "1. Unit tests for auth helper functions\n2. Integration tests for signup, login, and logout flows\n3. Test RLS policies by attempting to access data from different user accounts\n4. Verify proper error handling for authentication failures",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Implement Reusable Voice Input Component",
+        "description": "Create a reusable React component that converts speech to text in real-time using the Web Speech API.",
+        "details": "1. Create a VoiceInput component that can be used in both ingestion and query screens\n2. Implement Web Speech API integration:\n   ```typescript\n   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;\n   const recognition = new SpeechRecognition();\n   recognition.continuous = true;\n   recognition.interimResults = true;\n   ```\n3. Add start/stop recording functionality with appropriate UI indicators\n4. Handle browser compatibility issues and provide fallbacks\n5. Implement real-time transcription display\n6. Add error handling for microphone access issues\n7. Create props for customization and callback functions\n8. Ensure component works on mobile browsers (Safari and Chrome)",
+        "testStrategy": "1. Unit tests for component rendering and state management\n2. Mock Web Speech API for testing transcription functionality\n3. Test browser compatibility across Chrome and Safari\n4. Test error states and fallback mechanisms\n5. Manual testing on mobile devices",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Build Ingestion Screen",
+        "description": "Develop the ingestion screen that allows users to input LinkedIn URL and record or type notes.",
+        "details": "1. Create a responsive, mobile-first layout for the ingestion screen\n2. Implement LinkedIn URL input field with basic validation\n3. Add textarea for manual note input\n4. Integrate the VoiceInput component for speech-to-text\n5. Implement save functionality that sends data to the n8n webhook\n6. Add localStorage backup for offline use and retry capability\n7. Create loading states and success/error feedback\n8. Implement form validation\n\nAPI call structure:\n```typescript\nconst saveNote = async (data) => {\n  try {\n    // Save to localStorage first as backup\n    localStorage.setItem(`note_${userId}_${Date.now()}`, JSON.stringify(data));\n    \n    // Send to n8n webhook\n    const response = await fetch(process.env.INGEST_WEBHOOK_URL, {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({\n        user_id: userId,\n        linkedin_url: data.linkedinUrl,\n        note_text: data.noteText\n      })\n    });\n    \n    // Handle response\n    if (!response.ok) throw new Error('Failed to save note');\n    \n    // Remove from localStorage if successful\n    // Or mark as synced\n  } catch (error) {\n    // Keep in localStorage for retry\n    console.error(error);\n    throw error;\n  }\n};\n```",
+        "testStrategy": "1. Unit tests for form validation and component rendering\n2. Integration tests for form submission flow\n3. Test localStorage backup functionality\n4. Test retry mechanism for failed API calls\n5. Verify mobile responsiveness across different screen sizes\n6. Test voice input integration",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Implement Query Screen",
+        "description": "Create the query screen that allows users to search for contacts using natural language queries via voice or text input.",
+        "details": "1. Design a mobile-first query interface\n2. Reuse the VoiceInput component for speech input\n3. Add text input field for manual queries\n4. Implement search button and loading states\n5. Create results display area for AI-generated responses\n6. Add LinkedIn profile deep linking functionality\n7. Implement the API call to the query webhook\n\nAPI call structure:\n```typescript\nconst performQuery = async (queryText) => {\n  try {\n    const response = await fetch(process.env.QUERY_WEBHOOK_URL, {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({\n        user_id: userId,\n        query_text: queryText\n      })\n    });\n    \n    if (!response.ok) throw new Error('Query failed');\n    \n    const data = await response.json();\n    // Optional: Save query and response to database for history\n    return data;\n  } catch (error) {\n    console.error(error);\n    throw error;\n  }\n};\n```\n\nLinkedIn deep linking:\n```typescript\nconst openLinkedInProfile = (url) => {\n  // Check if LinkedIn app is installed (for mobile)\n  const linkedInAppUrl = url.replace('https://www.linkedin.com', 'linkedin://');\n  window.location.href = linkedInAppUrl;\n  \n  // Fallback to browser after delay if app doesn't open\n  setTimeout(() => {\n    window.open(url, '_blank');\n  }, 1000);\n};\n```",
+        "testStrategy": "1. Unit tests for query form and results display\n2. Integration tests for the query API flow\n3. Test error handling and loading states\n4. Verify LinkedIn deep linking functionality\n5. Test voice input integration\n6. Verify mobile responsiveness",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Configure Progressive Web App (PWA)",
+        "description": "Set up the application as a Progressive Web App to enable installability on mobile devices and offline functionality.",
+        "details": "1. Create a manifest.json file with app metadata:\n```json\n{\n  \"name\": \"Vibe Notes\",\n  \"short_name\": \"Vibe Notes\",\n  \"description\": \"Voice note-taking app for networking events\",\n  \"start_url\": \"/\",\n  \"display\": \"standalone\",\n  \"background_color\": \"#ffffff\",\n  \"theme_color\": \"#4285f4\",\n  \"icons\": [\n    {\n      \"src\": \"/icons/icon-192.png\",\n      \"sizes\": \"192x192\",\n      \"type\": \"image/png\"\n    },\n    {\n      \"src\": \"/icons/icon-512.png\",\n      \"sizes\": \"512x512\",\n      \"type\": \"image/png\"\n    }\n  ]\n}\n```\n2. Register a service worker for offline capabilities\n3. Implement caching strategies for app assets\n4. Create app icons in various sizes\n5. Configure Next.js for PWA support\n6. Implement install prompt and instructions\n7. Test installability across devices",
+        "testStrategy": "1. Use Lighthouse to audit PWA compliance\n2. Test installation process on iOS and Android devices\n3. Verify offline functionality works as expected\n4. Test service worker update process\n5. Verify app icons display correctly on home screens",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Implement Offline Storage and Retry System",
+        "description": "Create a system for storing notes locally when offline and retrying submission when connectivity is restored.",
+        "details": "1. Implement a localStorage-based queue system for pending submissions\n2. Create a background sync mechanism to check for unsent notes\n3. Add UI for viewing pending/unsent notes\n4. Implement retry logic with exponential backoff\n5. Add manual retry option for users\n\nStorage structure:\n```typescript\ninterface PendingNote {\n  id: string; // Locally generated\n  userId: string;\n  linkedinUrl: string;\n  noteText: string;\n  createdAt: number; // Timestamp\n  attempts: number; // Number of retry attempts\n  lastAttempt: number | null; // Timestamp of last attempt\n  status: 'pending' | 'failed' | 'synced';\n}\n\n// Save pending note\nconst savePendingNote = (note: PendingNote) => {\n  const pendingNotes = JSON.parse(localStorage.getItem('pendingNotes') || '[]');\n  pendingNotes.push(note);\n  localStorage.setItem('pendingNotes', JSON.stringify(pendingNotes));\n};\n\n// Retry logic\nconst retryPendingNotes = async () => {\n  if (!navigator.onLine) return;\n  \n  const pendingNotes = JSON.parse(localStorage.getItem('pendingNotes') || '[]');\n  const updatedNotes = [];\n  \n  for (const note of pendingNotes) {\n    if (note.status === 'synced') {\n      updatedNotes.push(note);\n      continue;\n    }\n    \n    try {\n      // Attempt to send to webhook\n      const response = await fetch(process.env.INGEST_WEBHOOK_URL, {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({\n          user_id: note.userId,\n          linkedin_url: note.linkedinUrl,\n          note_text: note.noteText\n        })\n      });\n      \n      if (response.ok) {\n        note.status = 'synced';\n      } else {\n        note.status = 'failed';\n        note.attempts += 1;\n        note.lastAttempt = Date.now();\n      }\n    } catch (error) {\n      note.status = 'failed';\n      note.attempts += 1;\n      note.lastAttempt = Date.now();\n    }\n    \n    updatedNotes.push(note);\n  }\n  \n  localStorage.setItem('pendingNotes', JSON.stringify(updatedNotes));\n};\n```",
+        "testStrategy": "1. Unit tests for localStorage operations\n2. Test retry logic with mocked API responses\n3. Simulate offline/online transitions to verify sync behavior\n4. Test exponential backoff algorithm\n5. Verify UI updates correctly based on sync status",
+        "priority": "medium",
+        "dependencies": [
+          3,
+          5
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Implement Webhook Integration",
+        "description": "Create API endpoints to communicate with n8n webhooks for both ingestion and query functionality.",
+        "details": "1. Create API routes in Next.js for both ingestion and query\n2. Implement proper error handling and response parsing\n3. Add authentication checks to ensure only authenticated users can access the endpoints\n4. Set up environment variables for webhook URLs\n5. Implement request validation\n6. Add logging for debugging purposes\n\nAPI route implementation:\n```typescript\n// pages/api/ingest.ts\nimport { NextApiRequest, NextApiResponse } from 'next';\nimport { createServerSupabaseClient } from '@supabase/auth-helpers-nextjs';\n\nexport default async function handler(req: NextApiRequest, res: NextApiResponse) {\n  // Only allow POST method\n  if (req.method !== 'POST') {\n    return res.status(405).json({ error: 'Method not allowed' });\n  }\n  \n  // Check authentication\n  const supabase = createServerSupabaseClient({ req, res });\n  const { data: { session } } = await supabase.auth.getSession();\n  \n  if (!session) {\n    return res.status(401).json({ error: 'Unauthorized' });\n  }\n  \n  try {\n    const { linkedinUrl, noteText } = req.body;\n    \n    // Validate input\n    if (!linkedinUrl || !noteText) {\n      return res.status(400).json({ error: 'Missing required fields' });\n    }\n    \n    // Forward to n8n webhook\n    const response = await fetch(process.env.INGEST_WEBHOOK_URL, {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({\n        user_id: session.user.id,\n        linkedin_url: linkedinUrl,\n        note_text: noteText\n      })\n    });\n    \n    if (!response.ok) {\n      throw new Error(`Webhook error: ${response.status}`);\n    }\n    \n    const data = await response.json();\n    \n    // Save to database\n    await supabase.from('note_ingestions').insert({\n      user_id: session.user.id,\n      linkedin_url: linkedinUrl,\n      note_text: noteText,\n      status: 'completed'\n    });\n    \n    return res.status(200).json(data);\n  } catch (error) {\n    console.error('Ingest error:', error);\n    return res.status(500).json({ error: 'Failed to process request' });\n  }\n}\n```\n\nSimilar implementation for the query endpoint.",
+        "testStrategy": "1. Unit tests for API route handlers\n2. Test authentication checks\n3. Test input validation\n4. Mock n8n webhook responses\n5. Test error handling scenarios\n6. Verify database operations",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Implement Accessibility and Error Handling",
+        "description": "Enhance the application with proper accessibility features and comprehensive error handling to ensure a robust user experience.",
+        "details": "1. Add proper ARIA attributes to all interactive elements\n2. Implement keyboard navigation support\n3. Ensure proper color contrast for all UI elements\n4. Create meaningful error messages for various failure scenarios\n5. Implement toast notifications for success/error feedback\n6. Add retry mechanisms for failed operations\n7. Create a global error boundary to catch unexpected errors\n8. Implement form validation with clear error messages\n9. Add loading indicators for all asynchronous operations\n\nExample error handling implementation:\n```typescript\n// Global error boundary\nclass ErrorBoundary extends React.Component {\n  constructor(props) {\n    super(props);\n    this.state = { hasError: false, error: null };\n  }\n\n  static getDerivedStateFromError(error) {\n    return { hasError: true, error };\n  }\n\n  componentDidCatch(error, errorInfo) {\n    // Log error to monitoring service\n    console.error('Application error:', error, errorInfo);\n  }\n\n  render() {\n    if (this.state.hasError) {\n      return (\n        <div className=\"error-container\">\n          <h2>Something went wrong</h2>\n          <p>We're sorry for the inconvenience. Please try refreshing the page.</p>\n          <button onClick={() => window.location.reload()}>Refresh</button>\n        </div>\n      );\n    }\n\n    return this.props.children;\n  }\n}\n```\n\nToast notification system:\n```typescript\nconst ToastContext = createContext(null);\n\nexport const ToastProvider = ({ children }) => {\n  const [toasts, setToasts] = useState([]);\n\n  const addToast = (message, type = 'info', duration = 5000) => {\n    const id = Date.now();\n    setToasts(prev => [...prev, { id, message, type }]);\n    setTimeout(() => removeToast(id), duration);\n  };\n\n  const removeToast = (id) => {\n    setToasts(prev => prev.filter(toast => toast.id !== id));\n  };\n\n  return (\n    <ToastContext.Provider value={{ addToast }}>\n      {children}\n      <div className=\"toast-container\">\n        {toasts.map(toast => (\n          <div key={toast.id} className={`toast toast-${toast.type}`}>\n            {toast.message}\n            <button onClick={() => removeToast(toast.id)}>×</button>\n          </div>\n        ))}\n      </div>\n    </ToastContext.Provider>\n  );\n};\n```",
+        "testStrategy": "1. Run accessibility audits using tools like axe or Lighthouse\n2. Test keyboard navigation through all interactive elements\n3. Test screen reader compatibility\n4. Verify error handling for various failure scenarios\n5. Test toast notification system\n6. Verify form validation error messages\n7. Test error boundary by intentionally causing errors",
+        "priority": "medium",
+        "dependencies": [
+          3,
+          4,
+          6,
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-07-27T14:04:02.127Z",
+      "updated": "2025-07-27T14:04:02.127Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
