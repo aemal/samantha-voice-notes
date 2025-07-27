@@ -72,9 +72,11 @@ Vibe Notes is a **mobile-first voice note-taking PWA** designed for capturing sh
 ### UI/UX Considerations
 
 * **Mobile-first layout** with large tap targets
+* **Accessible design** using Headless UI (Hero UI) components for WCAG 2.1 AA compliance
 * Real-time speech-to-text transcription while recording
 * Error handling + retry support with `localStorage` backup
 * Minimalist design for fast input and low distraction
+* **Component consistency** using Hero UI's Dialog, Button, Input, and Transition components
 
 ---
 
@@ -83,6 +85,7 @@ Vibe Notes is a **mobile-first voice note-taking PWA** designed for capturing sh
 ### System Components
 
 * **Frontend**: Next.js 15 (App Router, TypeScript)
+* **UI Components**: Headless UI for React (Hero UI) - provides accessible, unstyled components
 * **Backend**: Supabase (PostgreSQL + Auth + RLS)
 * **External APIs**: n8n webhook URLs (one for ingest, one for query)
 
